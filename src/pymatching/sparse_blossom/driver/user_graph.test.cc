@@ -251,10 +251,13 @@ TEST(UserGraph, NewConstructor) {
     /* pm::decode_detection_events(mwpm, {2}, res.obs_crossed.data(), res.weight); */
     /* auto& mg = graph.to_matching_graph(weights.size()); */
 
-    std::vector<uint8_t> syndrome = {0, 1, 0, 0};
+    std::vector<uint8_t> syndrome = {1, 1, 0, 0};
     // why is this int64 in mwpw_decoding?
-    std::vector<uint64_t> detection_events = {1, 1, 0, 0, 0};
+    /* std::vector<uint64_t> detection_events = {0, 1, 0, 0, 0}; */
+    std::vector<uint64_t> detection_events = {0, 1};
+    // detection_events = z.nonzero()[0]
     std::vector<uint8_t> obs_crossed(graph.get_num_observables(), 0);
+    /* pm::total_weight_int weight2 = 0; */
     pm::total_weight_int weight2 = 0;
     pm::decode_detection_events(mwpm, detection_events, obs_crossed.data(), weight2);
     double rescaled_weight = (double)weight / mwpm.flooder.graph.normalising_constant;
