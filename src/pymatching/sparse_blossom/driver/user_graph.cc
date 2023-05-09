@@ -392,3 +392,194 @@ pm::UserGraph pm::detector_error_model_to_user_graph(const stim::DetectorErrorMo
         });
     return user_graph;
 }
+
+// This is copied from user_graph.pybind.cc, figure out where is should go
+pm::MERGE_STRATEGY merge_strategy_from_string2(const std::string &merge_strategy) {
+    static std::unordered_map<std::string, pm::MERGE_STRATEGY> const table = {
+        {"disallow", pm::DISALLOW},
+        {"independent", pm::INDEPENDENT},
+        {"smallest-weight", pm::SMALLEST_WEIGHT},
+        {"keep-original", pm::KEEP_ORIGINAL},
+        {"replace", pm::REPLACE}};
+    auto it = table.find(merge_strategy);
+    if (it != table.end()) {
+        return it->second;
+    } else {
+        throw std::invalid_argument("Merge strategy \"" + merge_strategy + "\" not recognised.");
+    }
+}
+
+pm::UserGraph pm::vector_checkmatrix_to_user_graph(
+           const std::vector<std::vector<uint8_t>> &vec_H,
+           const std::vector<double> &weights,
+           const std::vector<double> &error_probabilities,
+           const std::string &merge_strategy,
+           bool use_virtual_boundary_node,
+           size_t num_repetitions,
+           const std::vector<double> &timelike_weights,
+           const std::vector<double> &measurement_error_probabilities,
+           std::vector<std::vector<uint8_t>> &vec_F){
+    auto H = pm::CSCCheckMatrix(vec_H);
+    auto F = pm::CSCCheckMatrix(vec_F);
+    pm::UserGraph graph = pm::csccheckmatrix_to_user_graph(
+        H, weights, error_probabilities, merge_strategy,
+        use_virtual_boundary_node, num_repetitions,
+        timelike_weights, measurement_error_probabilities, F);
+    return graph;
+}
+
+pm::UserGraph pm::csccheckmatrix_to_user_graph(
+           const pm::CSCCheckMatrix &H,
+           const std::vector<double> &weights,
+           const std::vector<double> &error_probabilities,
+           const std::string &merge_strategy,
+           bool use_virtual_boundary_node,
+           size_t num_repetitions,
+           const std::vector<double> &timelike_weights,
+           const std::vector<double> &measurement_error_probabilities,
+           pm::CSCCheckMatrix &F){
+           // py::object &faults_matrix) {
+           // auto H = CompressedSparseColumnCheckMatrix(check_matrix);
+           // auto H = cppCompressedSparseColumnCheckMatrix(dat, inds, ptrs, nrows, ncols);
+           // auto F = cppCompressedSparseColumnCheckMatrix(dat, inds, ptrs, nrows, ncols);
+
+           // if (faults_matrix.is(py::none())) {
+           //     faults_matrix =
+           //         py::module_::import("scipy.sparse")
+           //             .attr("eye")(
+           //                 H.num_cols, "dtype"_a = py::module_::import("numpy").attr("uint8"), "format"_a = "csc");
+           // }
+           // auto F = CompressedSparseColumnCheckMatrix(faults_matrix);
+
+            // auto weights_unchecked = weights.unchecked<1>();
+            std::vector<double> weights_unchecked(weights);
+            // Check weights array size is correct
+            if ((size_t)weights_unchecked.size() != H.num_cols)
+                throw std::invalid_argument(
+                    "The size of the `weights` array (" + std::to_string(weights_unchecked.size()) +
+                    ") should match the number of columns in the check matrix (" + std::to_string(H.num_cols) + ")");
+            std::vector<double> error_probabilities_unchecked(error_probabilities);
+            // auto error_probabilities_unchecked = error_probabilities.unchecked<1>();
+            // Check error_probabilities array is correct
+            if ((size_t)error_probabilities_unchecked.size() != H.num_cols)
+                throw std::invalid_argument(
+                    "The size of the `error_probabilities` array (" +
+                    std::to_string(error_probabilities_unchecked.size()) +
+                    ") should match the number of columns in the check matrix (" + std::to_string(H.num_cols) + ")");
+
+            if (H.num_cols != F.num_cols)
+                throw std::invalid_argument(
+                    "`faults_matrix` array with shape (" + std::to_string(F.num_rows) + ", " +
+                    std::to_string(F.num_cols) +
+                    ") must have the same number of columns as the check matrix, which has shape (" +
+                    std::to_string(H.num_rows) + ", " + std::to_string(H.num_cols) + ").");
+
+            auto merge_strategy_enum = merge_strategy_from_string2(merge_strategy);
+
+            // auto H_indptr_unchecked = H.indptr.unchecked<1>();
+            // auto H_indices_unchecked = H.indices.unchecked<1>();
+            // auto F_indptr_unchecked = F.indptr.unchecked<1>();
+            // auto F_indices_unchecked = F.indices.unchecked<1>();
+            std::vector<uint64_t> H_indptr_unchecked(H.indptr);
+            std::vector<uint64_t> H_indices_unchecked(H.indices);
+            std::vector<uint64_t> F_indptr_unchecked(F.indptr);
+            std::vector<uint64_t> F_indices_unchecked(F.indices);
+
+            // Now construct the graph
+            size_t num_detectors = H.num_rows * num_repetitions;
+            pm::UserGraph graph(num_detectors, F.num_rows);
+            // Each column corresponds to an edge. Iterate over the columns, adding the edges to the graph.
+            // Also iterate over the number of repetitions (in case num_repetitions > 1)
+            for (size_t rep = 0; rep < num_repetitions; rep++) {
+                // for (py::ssize_t c = 0; (size_t)c < H.num_cols; c++) {
+                for (size_t c = 0; (size_t)c < H.num_cols; c++) {
+                    auto idx_start = H_indptr_unchecked[c];
+                    auto idx_end = H_indptr_unchecked[c + 1];
+                    auto num_dets = idx_end - idx_start;
+                    if (idx_start > H_indices_unchecked.size() - 1 && idx_start != idx_end)
+                        throw std::invalid_argument(
+                            "`check_matrix.indptr` elements must not exceed size of `check_matrix.indices`");
+                    auto f_idx_start = F_indptr_unchecked[c];
+                    auto f_idx_end = F_indptr_unchecked[c + 1];
+                    std::vector<size_t> obs;
+                    obs.reserve(f_idx_end - f_idx_start);
+                    for (auto q = f_idx_start; q < f_idx_end; q++)
+                        obs.push_back((size_t)F_indices_unchecked[q]);
+                    if (num_dets == 2) {
+                        graph.add_or_merge_edge(
+                            H_indices_unchecked[idx_start] + H.num_rows * rep,
+                            H_indices_unchecked[idx_start + 1] + H.num_rows * rep,
+                            obs,
+                            weights_unchecked[c],
+                            error_probabilities_unchecked[c],
+                            merge_strategy_enum);
+                    } else if (num_dets == 1) {
+                        if (use_virtual_boundary_node) {
+                            graph.add_or_merge_boundary_edge(
+                                H_indices_unchecked[idx_start] + H.num_rows * rep,
+                                obs,
+                                weights_unchecked[c],
+                                error_probabilities_unchecked[c],
+                                merge_strategy_enum);
+                        } else {
+                            graph.add_or_merge_edge(
+                                H_indices_unchecked[idx_start] + H.num_rows * rep,
+                                num_detectors,
+                                obs,
+                                weights_unchecked[c],
+                                error_probabilities_unchecked[c],
+                                merge_strategy_enum);
+                        }
+                    } else if (num_dets != 0) {
+                        throw std::invalid_argument(
+                            "`check_matrix` must contain at most two ones per column, but column " + std::to_string(c) +
+                            " has " + std::to_string(num_dets) + " ones.");
+                    }
+                }
+            }
+
+            if (num_repetitions > 1) {
+                /* if (timelike_weights.is(py::none())) */
+                if (timelike_weights.size() < 1)
+                    throw std::invalid_argument("must provide `timelike_weights` for repetitions > 1.");
+                /* if (measurement_error_probabilities.is(py::none())) */
+                if (measurement_error_probabilities.size() < 1)
+                    throw std::invalid_argument("must provide `measurement_error_probabilities` for repetitions > 1.");
+                /* auto t_weights = timelike_weights.unchecked<1>(); */
+                std::vector<double> t_weights(timelike_weights);
+                if ((size_t)t_weights.size() != H.num_rows) {
+                    throw std::invalid_argument(
+                        "timelike_weights has length " + std::to_string(t_weights.size()) +
+                        " but its length must equal the number of columns in the check matrix (" +
+                        std::to_string(H.num_rows) + ").");
+                }
+                /* auto meas_errs = measurement_error_probabilities.unchecked<1>(); */
+                std::vector<double> meas_errs(measurement_error_probabilities);
+                if ((size_t)meas_errs.size() != H.num_rows) {
+                    throw std::invalid_argument(
+                        "`measurement_error_probabilities` has length " + std::to_string(meas_errs.size()) +
+                        " but its length must equal the number of columns in the check matrix (" +
+                        std::to_string(H.num_rows) + ").");
+                }
+
+                for (size_t rep = 0; rep < num_repetitions - 1; rep++) {
+                    for (size_t row = 0; row < H.num_rows; row++) {
+                        graph.add_or_merge_edge(
+                            row + rep * H.num_rows,
+                            row + (rep + 1) * H.num_rows,
+                            {},
+                            t_weights[row],
+                            meas_errs[row],
+                            merge_strategy_enum);
+                    }
+                }
+            }
+
+            // Set the boundary if not using a virtual boundary and if a boundary edge was added
+            if (!use_virtual_boundary_node && graph.nodes.size() == num_detectors + 1)
+                graph.set_boundary({num_detectors});
+
+            return graph;
+}
+
+

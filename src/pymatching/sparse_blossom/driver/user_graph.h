@@ -26,6 +26,60 @@
 
 namespace pm {
 
+  class CSCCheckMatrix {
+    public:
+      std::vector<uint8_t> data;
+      std::vector<uint64_t> indices;
+      std::vector<uint64_t> indptr;
+      size_t num_rows;
+      size_t num_cols;
+
+      CSCCheckMatrix(const std::vector<uint8_t> &data_in,
+          const std::vector<uint64_t> &indices_in,
+          const std::vector<uint64_t> &indptr_in,
+          size_t num_rows_in,
+          size_t num_cols_in):
+        data(data_in), indices(indices_in), indptr(indptr_in), num_rows(num_rows_in), num_cols(num_cols_in){}
+      CSCCheckMatrix(const std::vector<std::vector<uint8_t>> &vectors_in):
+        num_rows(vectors_in.size()), num_cols(vectors_in[0].size()){
+          indptr.push_back(data.size());
+          for(size_t c = 0; c < num_cols; ++c){
+            for(size_t r = 0; r < num_rows; ++r){
+              if( vectors_in[r][c] != 0 ){
+                data.push_back(vectors_in[r][c]);
+                indices.push_back(r);
+              }
+            }
+            indptr.push_back(data.size());
+          }
+        }
+
+      uint8_t get(size_t row, size_t col) const{
+        for(size_t idx = indptr[col]; idx < indptr[col+1]; ++idx){
+          if( row == indices[idx] ){
+            return data[idx];
+          }
+        }
+        return 0;
+      }
+
+      void print_dense() const{
+        std::cout << "num_rows: " << this->num_rows << "\n";
+        std::cout << "num_cols: " << this->num_cols << "\n";
+        std::cout << "data.size(): " << this->data.size() << "\n";
+        std::cout << "indices.size(): " << this->indices.size() << "\n";
+        std::cout << "indptr.size(): " << this->indptr.size() << "\n";
+        for(size_t r = 0; r < this->num_rows; ++r){
+          for(size_t c = 0; c < this->num_cols; ++c){
+            // "+" helps print uint8_t as printable numerical value
+            std::cout << +this->get(r,c) << " ";
+          }
+          std::cout << "\n";
+        }
+        std::cout << "\n";
+      }
+  };
+
 struct UserEdge {
     size_t node1;
     size_t node2;
@@ -140,6 +194,28 @@ inline double UserGraph::iter_discretized_edges(
     }
     return normalising_constant * 2;
 }
+
+UserGraph vector_checkmatrix_to_user_graph(
+           const std::vector<std::vector<uint8_t>> &vec_H,
+           const std::vector<double> &weights,
+           const std::vector<double> &error_probabilities,
+           const std::string &merge_strategy,
+           bool use_virtual_boundary_node,
+           size_t num_repetitions,
+           const std::vector<double> &timelike_weights,
+           const std::vector<double> &measurement_error_probabilities,
+           std::vector<std::vector<uint8_t>> &vec_F);
+
+UserGraph csccheckmatrix_to_user_graph(
+           const CSCCheckMatrix &H,
+           const std::vector<double> &weights,
+           const std::vector<double> &error_probabilities,
+           const std::string &merge_strategy,
+           bool use_virtual_boundary_node,
+           size_t num_repetitions,
+           const std::vector<double> &timelike_weights,
+           const std::vector<double> &measurement_error_probabilities,
+           CSCCheckMatrix &F);
 
 UserGraph detector_error_model_to_user_graph(const stim::DetectorErrorModel& detector_error_model);
 
