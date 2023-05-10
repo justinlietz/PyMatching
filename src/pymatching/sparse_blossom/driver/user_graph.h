@@ -217,6 +217,8 @@ UserGraph csccheckmatrix_to_user_graph(
            const std::vector<double> &measurement_error_probabilities,
            CSCCheckMatrix &F);
 
+std::vector<uint8_t> decode(UserGraph &graph, const std::vector<uint8_t> &syndrome);
+
 UserGraph detector_error_model_to_user_graph(const stim::DetectorErrorModel& detector_error_model);
 
 }  // namespace pm

@@ -14,6 +14,9 @@
 
 #include "pymatching/sparse_blossom/driver/user_graph.h"
 
+// this include means this should probably be in a separate file
+#include "pymatching/sparse_blossom/driver/mwpm_decoding.h"
+
 pm::UserNode::UserNode() : is_boundary(false) {
 }
 
@@ -582,4 +585,22 @@ pm::UserGraph pm::csccheckmatrix_to_user_graph(
             return graph;
 }
 
+// const graph?
+/* std::pair<std::vector<uint8_t>, double> decode(pm::UserGraph &graph, std::vector<uint8_t> syndrome){ */
+std::vector<uint8_t> pm::decode(pm::UserGraph &graph, const std::vector<uint8_t> &syndrome){
+  // Todo - check syndrome vals are in {0,1}
+  std::vector<uint64_t> detection_events;
+  for(size_t idx = 0; idx < syndrome.size(); ++idx){
+    if( syndrome[idx] == 1 ) detection_events.push_back(idx);
+  }
+  auto& mwpm = graph.get_mwpm();
+  std::vector<uint8_t> correction(graph.get_num_observables());
+  pm::total_weight_int weight = 0;
+  pm::decode_detection_events(mwpm, detection_events, correction.data(), weight);
+  double rescaled_weight = (double)weight / mwpm.flooder.graph.normalising_constant;
+
+  std::pair<std::vector<uint8_t>, double> result(correction, rescaled_weight);
+  /* return result; */
+  return correction;
+}
 

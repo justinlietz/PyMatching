@@ -19,25 +19,6 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
-/* namespace py = pybind11; */
-
-
-
-/* pm::MERGE_STRATEGY merge_strategy_from_string(const std::string &merge_strategy) { */
-/*     static std::unordered_map<std::string, pm::MERGE_STRATEGY> const table = { */
-/*         {"disallow", pm::DISALLOW}, */
-/*         {"independent", pm::INDEPENDENT}, */
-/*         {"smallest-weight", pm::SMALLEST_WEIGHT}, */
-/*         {"keep-original", pm::KEEP_ORIGINAL}, */
-/*         {"replace", pm::REPLACE}}; */
-/*     auto it = table.find(merge_strategy); */
-/*     if (it != table.end()) { */
-/*         return it->second; */
-/*     } else { */
-/*         throw std::invalid_argument("Merge strategy \"" + merge_strategy + "\" not recognised."); */
-/*     } */
-/* } */
-
 TEST(UserGraph, GraphFromVectors) {
     std::vector<std::vector<uint8_t>> vec_H({{1, 1, 0, 0, 0},
                                               {0, 1, 1, 0, 0},
@@ -50,36 +31,14 @@ TEST(UserGraph, GraphFromVectors) {
                                               {0, 0, 0, 0, 1}});
     size_t H_rows = 4;
     size_t H_cols = 5;
-    /* std::vector<uint8_t> H_data = {1, 1, 1, 1, 1, 1, 1, 1}; */
-    /* std::vector<uint64_t> H_inds = {0, 0, 1, 1, 2, 2, 3, 3}; */
-    /* std::vector<uint64_t> H_ptrs = {0, 1, 3, 5, 7, 8}; */
-    /* size_t F_rows = 5; */
-    /* size_t F_cols = 5; */
-    /* std::vector<uint8_t> F_data = {1, 1, 1, 1, 1,}; */
-    /* std::vector<uint64_t> F_inds = {0, 1, 2, 3, 4}; */
-    /* std::vector<uint64_t> F_ptrs = {0, 1, 2, 3, 4, 5}; */
 
-    /* std::vector<double> weights = {1.0, 2.0, 3.0, 2.0, 1.5}; */
-    /* std::vector<double> error_probs = {0.4, 0.3, 0.4, 0.2, 0.1}; */
     double eprob = -1.0;
-    /* std::vector<double> error_probs = {eprob, eprob, eprob, eprob, eprob}; */
     std::vector<double> error_probs(vec_H[0].size(), eprob);
     std::vector<double> meas_error_probs(vec_H[0].size(), eprob);
-    /* std::cout << "prob size: " << error_probs.size() << "\n"; */
     double weight = 1.0;
     std::vector<double> weights(vec_H[0].size(), weight);
     std::vector<double> timelike_weights(vec_H[0].size(), weight);
-    /* std::vector<double> weights = {weight, weight, weight, weight, weight}; */
-    /* auto H = CompressedSparseColumnCheckMatrix(rows_H); */
-    /* auto F = CompressedSparseColumnCheckMatrix(rows_F); */
-    /* auto H = pm::CSCCheckMatrix(vec_H); */
-    /* auto F = pm::CSCCheckMatrix(vec_F); */
-    /* H.print_dense(); */
-    /* return; */
 
-    /* auto H = CSCCheckMatrix(H_data, H_inds, H_ptrs, H_rows, H_cols); */
-    /* auto F = CSCCheckMatrix(F_data, F_inds, F_ptrs, F_rows, F_cols); */
-    // is is square with size ncolsxncols
     size_t num_repetitions = 1;
     size_t num_detectors = H_rows * num_repetitions;
     /* int my_val = test_func(2); */
@@ -121,8 +80,17 @@ TEST(UserGraph, GraphFromVectors) {
     }
     std::cout << "\n" << "weight: " << rescaled_weight << "\n";
 
+    std::vector<uint8_t> correc = pm::decode(graph, syndrome);
+    /* double rweight; */
+    /* auto [correc, rweight] = decode(graph, syndrome); */
+    std::cout << "correc: " << correc.size() << "\n";
+    for(size_t i = 0; i < correc.size(); ++i){
+      std::cout << "i: " << i << " val: " << +correc[i] << "\n";
+    }
+
     /* correction, weight = matching_graph.decode(detection_events); */
-    ASSERT_EQ(1, 1);
+    std::vector<uint8_t> answer = {1, 1, 0, 0, 0};
+    ASSERT_EQ(correc, answer);
 }
 
 
