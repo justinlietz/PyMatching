@@ -19,79 +19,64 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+TEST(UserGraph, GraphFromOnlyVectors) {
+    std::vector<std::vector<uint8_t>> vec_H({{1, 1, 0, 0, 0},
+                                              {0, 1, 1, 0, 0},
+                                              {0, 0, 1, 1, 0},
+                                              {0, 0, 0, 1, 1}});
+
+    pm::UserGraph graph = pm::vector_checkmatrix_to_user_graph(vec_H);
+
+    std::vector<uint8_t> syndrome = {0, 1, 0, 0};
+    std::vector<uint8_t> decode_output = pm::decode(graph, syndrome);
+    std::cout << "correc: " << decode_output.size() << "\n";
+    for(size_t i = 0; i < decode_output.size(); ++i){
+      std::cout << "i: " << i << " val: " << +decode_output[i] << "\n";
+    }
+
+    std::vector<uint8_t> answer = {1, 1, 0, 0, 0};
+    ASSERT_EQ(decode_output, answer);
+}
+
+
 TEST(UserGraph, GraphFromVectors) {
     std::vector<std::vector<uint8_t>> vec_H({{1, 1, 0, 0, 0},
                                               {0, 1, 1, 0, 0},
                                               {0, 0, 1, 1, 0},
                                               {0, 0, 0, 1, 1}});
+
+    // from here to constructor is all graph optional params
     std::vector<std::vector<uint8_t>> vec_F({{1, 0, 0, 0, 0},
                                               {0, 1, 0, 0, 0},
                                               {0, 0, 1, 0, 0},
                                               {0, 0, 0, 1, 0},
                                               {0, 0, 0, 0, 1}});
-    size_t H_rows = 4;
-    size_t H_cols = 5;
-
     double eprob = -1.0;
     std::vector<double> error_probs(vec_H[0].size(), eprob);
     std::vector<double> meas_error_probs(vec_H[0].size(), eprob);
     double weight = 1.0;
     std::vector<double> weights(vec_H[0].size(), weight);
     std::vector<double> timelike_weights(vec_H[0].size(), weight);
-
     size_t num_repetitions = 1;
-    size_t num_detectors = H_rows * num_repetitions;
-    /* int my_val = test_func(2); */
-    /* std::cout << "myval: " << my_val << "\n"; */
-    /* pm::UserGraph graph(num_detectors, F_rows); */
     const std::string merge_strategy("smallest-weight");
     const bool use_virtual_boundary_node = false;
     pm::UserGraph graph = pm::vector_checkmatrix_to_user_graph(vec_H, weights, error_probs,
         merge_strategy, use_virtual_boundary_node, num_repetitions, timelike_weights, meas_error_probs, vec_F);
-    auto& mwpm = graph.get_mwpm();
 
-    /* auto err_capsule = py::capsule(obs_crossed, [](void *x) { */
-    /*     delete reinterpret_cast<std::vector<uint8_t> *>(x); */
-    /* }); */
-    /* py::array_t<uint8_t> obs_crossed_arr = */
-    /*     py::array_t<uint8_t>(obs_crossed->size(), obs_crossed->data(), err_capsule); */
-    /* std::pair<py::array_t<std::uint8_t>, double> res = {obs_crossed_arr, rescaled_weight}; */
-
-    /* pm::ExtendedMatchingResult res(mwpm.flooder.graph.num_observables); */
-    /* pm::decode_detection_events(mwpm, {2}, res.obs_crossed.data(), res.weight); */
-    /* auto& mg = graph.to_matching_graph(weights.size()); */
 
     std::vector<uint8_t> syndrome = {0, 1, 0, 0};
-    // why is this int64 in mwpw_decoding?
-    /* std::vector<uint64_t> detection_events = {0, 1, 0, 0, 0}; */
-    std::vector<uint64_t> detection_events = {1};
-    // detection_events = z.nonzero()[0]
-    std::vector<uint8_t> obs_crossed(graph.get_num_observables());
-    std::cout << "num obs: " << graph.get_num_observables() << "\n";
-    std::cout << "obs: " << obs_crossed.size() << "\n";
-    /* pm::total_weight_int weight2 = 0; */
-    pm::total_weight_int weight2 = 0;
-    pm::decode_detection_events(mwpm, detection_events, obs_crossed.data(), weight2);
-    double rescaled_weight = (double)weight / mwpm.flooder.graph.normalising_constant;
-    std::cout << "obs: " << obs_crossed.size() << "\n";
-    std::cout << "correction: \n";
-    for(size_t i = 0; i < obs_crossed.size(); ++i){
-      std::cout << "i: " << i << " val: " << +obs_crossed[i] << "\n";
-    }
-    std::cout << "\n" << "weight: " << rescaled_weight << "\n";
-
-    std::vector<uint8_t> correc = pm::decode(graph, syndrome);
+    std::vector<uint8_t> decode_output = pm::decode(graph, syndrome);
     /* double rweight; */
-    /* auto [correc, rweight] = decode(graph, syndrome); */
-    std::cout << "correc: " << correc.size() << "\n";
-    for(size_t i = 0; i < correc.size(); ++i){
-      std::cout << "i: " << i << " val: " << +correc[i] << "\n";
+    /* auto [correction, rweight] = decode(graph, syndrome); */
+    std::cout << "correc: " << decode_output.size() << "\n";
+    for(size_t i = 0; i < decode_output.size(); ++i){
+      std::cout << "i: " << i << " val: " << +decode_output[i] << "\n";
     }
 
-    /* correction, weight = matching_graph.decode(detection_events); */
     std::vector<uint8_t> answer = {1, 1, 0, 0, 0};
-    ASSERT_EQ(correc, answer);
+    ASSERT_EQ(decode_output, answer);
 }
+
 
 
 TEST(UserGraph, GraphFromCSCCheckMatrix) {
@@ -99,87 +84,33 @@ TEST(UserGraph, GraphFromCSCCheckMatrix) {
                                               {0, 1, 1, 0, 0},
                                               {0, 0, 1, 1, 0},
                                               {0, 0, 0, 1, 1}});
+
+    // from here to constructor is all graph optional params
     std::vector<std::vector<uint8_t>> vec_F({{1, 0, 0, 0, 0},
                                               {0, 1, 0, 0, 0},
                                               {0, 0, 1, 0, 0},
                                               {0, 0, 0, 1, 0},
                                               {0, 0, 0, 0, 1}});
-    size_t H_rows = 4;
-    size_t H_cols = 5;
-    std::vector<uint8_t> H_data = {1, 1, 1, 1, 1, 1, 1, 1};
-    std::vector<uint64_t> H_inds = {0, 0, 1, 1, 2, 2, 3, 3};
-    std::vector<uint64_t> H_ptrs = {0, 1, 3, 5, 7, 8};
-    size_t F_rows = 5;
-    size_t F_cols = 5;
-    std::vector<uint8_t> F_data = {1, 1, 1, 1, 1,};
-    std::vector<uint64_t> F_inds = {0, 1, 2, 3, 4};
-    std::vector<uint64_t> F_ptrs = {0, 1, 2, 3, 4, 5};
-
-    /* std::vector<double> weights = {1.0, 2.0, 3.0, 2.0, 1.5}; */
-    /* std::vector<double> error_probs = {0.4, 0.3, 0.4, 0.2, 0.1}; */
     double eprob = -1.0;
     std::vector<double> error_probs(vec_H[0].size(), eprob);
     std::vector<double> meas_error_probs(vec_H[0].size(), eprob);
-    /* std::cout << "prob size: " << error_probs.size() << "\n"; */
     double weight = 1.0;
     std::vector<double> weights(vec_H[0].size(), weight);
     std::vector<double> timelike_weights(vec_H[0].size(), weight);
-
-    /* auto H = CompressedSparseColumnCheckMatrix(rows_H); */
-    /* auto F = CompressedSparseColumnCheckMatrix(rows_F); */
-    auto H = pm::CSCCheckMatrix(vec_H);
-    auto F = pm::CSCCheckMatrix(vec_F);
-    H.print_dense();
-    /* return; */
-
-    /* auto H = CSCCheckMatrix(H_data, H_inds, H_ptrs, H_rows, H_cols); */
-    /* auto F = CSCCheckMatrix(F_data, F_inds, F_ptrs, F_rows, F_cols); */
-    // is is square with size ncolsxncols
     size_t num_repetitions = 1;
-    size_t num_detectors = H_rows * num_repetitions;
-    /* int my_val = test_func(2); */
-    /* std::cout << "myval: " << my_val << "\n"; */
-    /* pm::UserGraph graph(num_detectors, F_rows); */
     const std::string merge_strategy("smallest-weight");
     const bool use_virtual_boundary_node = false;
-    pm::UserGraph graph = pm::csccheckmatrix_to_user_graph(H, weights, error_probs,
-        merge_strategy, use_virtual_boundary_node, num_repetitions, timelike_weights, meas_error_probs, F);
-    auto& mwpm = graph.get_mwpm();
+    pm::CSCCheckMatrix csc_H(vec_H);
+    pm::CSCCheckMatrix csc_F(vec_F);
+    pm::UserGraph graph = pm::csccheckmatrix_to_user_graph(csc_H, weights, error_probs,
+        merge_strategy, use_virtual_boundary_node, num_repetitions, timelike_weights, meas_error_probs, csc_F);
 
-    /* auto err_capsule = py::capsule(obs_crossed, [](void *x) { */
-    /*     delete reinterpret_cast<std::vector<uint8_t> *>(x); */
-    /* }); */
-    /* py::array_t<uint8_t> obs_crossed_arr = */
-    /*     py::array_t<uint8_t>(obs_crossed->size(), obs_crossed->data(), err_capsule); */
-    /* std::pair<py::array_t<std::uint8_t>, double> res = {obs_crossed_arr, rescaled_weight}; */
-
-    /* pm::ExtendedMatchingResult res(mwpm.flooder.graph.num_observables); */
-    /* pm::decode_detection_events(mwpm, {2}, res.obs_crossed.data(), res.weight); */
-    /* auto& mg = graph.to_matching_graph(weights.size()); */
 
     std::vector<uint8_t> syndrome = {0, 1, 0, 0};
-    // why is this int64 in mwpw_decoding?
-    /* std::vector<uint64_t> detection_events = {0, 1, 0, 0, 0}; */
-    std::vector<uint64_t> detection_events = {1};
-    // detection_events = z.nonzero()[0]
-    std::vector<uint8_t> obs_crossed(graph.get_num_observables());
-    std::cout << "num obs: " << graph.get_num_observables() << "\n";
-    std::cout << "obs: " << obs_crossed.size() << "\n";
-    /* pm::total_weight_int weight2 = 0; */
-    pm::total_weight_int weight2 = 0;
-    pm::decode_detection_events(mwpm, detection_events, obs_crossed.data(), weight2);
-    double rescaled_weight = (double)weight / mwpm.flooder.graph.normalising_constant;
-    std::cout << "obs: " << obs_crossed.size() << "\n";
-    std::cout << "correction: \n";
-    for(size_t i = 0; i < obs_crossed.size(); ++i){
-      std::cout << "i: " << i << " val: " << +obs_crossed[i] << "\n";
-    }
-    std::cout << "\n" << "weight: " << rescaled_weight << "\n";
-
-    /* correction, weight = matching_graph.decode(detection_events); */
-    ASSERT_EQ(1, 1);
+    std::vector<uint8_t> decode_output = pm::decode(graph, syndrome);
+    std::vector<uint8_t> answer = {1, 1, 0, 0, 0};
+    ASSERT_EQ(decode_output, answer);
 }
-
 
 TEST(UserGraph, ConstructGraph) {
     pm::UserGraph graph;

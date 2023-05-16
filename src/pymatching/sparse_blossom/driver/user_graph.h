@@ -195,6 +195,8 @@ inline double UserGraph::iter_discretized_edges(
     return normalising_constant * 2;
 }
 
+UserGraph vector_checkmatrix_to_user_graph(const std::vector<std::vector<uint8_t>> &vec_H);
+
 UserGraph vector_checkmatrix_to_user_graph(
            const std::vector<std::vector<uint8_t>> &vec_H,
            const std::vector<double> &weights,

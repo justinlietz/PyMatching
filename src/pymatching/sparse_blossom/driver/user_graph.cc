@@ -412,6 +412,36 @@ pm::MERGE_STRATEGY merge_strategy_from_string2(const std::string &merge_strategy
     }
 }
 
+std::vector<std::vector<uint8_t>> vec_eye(size_t n){
+  std::vector<std::vector<uint8_t>> eye(n);
+  for(size_t i = 0; i < n; ++i){
+    eye[i] = std::vector<uint8_t>(n);
+    eye[i][i] = 1;
+  }
+  return eye;
+}
+
+
+pm::UserGraph pm::vector_checkmatrix_to_user_graph(const std::vector<std::vector<uint8_t>> &vec_H){
+    std::vector<std::vector<uint8_t>> vec_F = vec_eye(vec_H[0].size());
+    double eprob = -1.0;
+    std::vector<double> error_probabilities(vec_H[0].size(), eprob);
+    std::vector<double> measurement_error_probabilities(vec_H[0].size(), eprob);
+    double weight = 1.0;
+    std::vector<double> weights(vec_H[0].size(), weight);
+    std::vector<double> timelike_weights(vec_H[0].size(), weight);
+    size_t num_repetitions = 1;
+    const std::string merge_strategy("smallest-weight");
+    const bool use_virtual_boundary_node = false;
+
+    pm::UserGraph graph = pm::vector_checkmatrix_to_user_graph(
+        vec_H, weights, error_probabilities, merge_strategy,
+        use_virtual_boundary_node, num_repetitions,
+        timelike_weights, measurement_error_probabilities, vec_F);
+    return graph;
+}
+
+
 pm::UserGraph pm::vector_checkmatrix_to_user_graph(
            const std::vector<std::vector<uint8_t>> &vec_H,
            const std::vector<double> &weights,
@@ -589,6 +619,7 @@ pm::UserGraph pm::csccheckmatrix_to_user_graph(
 /* std::pair<std::vector<uint8_t>, double> decode(pm::UserGraph &graph, std::vector<uint8_t> syndrome){ */
 std::vector<uint8_t> pm::decode(pm::UserGraph &graph, const std::vector<uint8_t> &syndrome){
   // Todo - check syndrome vals are in {0,1}
+  // why is this int64 in mwpw_decoding?
   std::vector<uint64_t> detection_events;
   for(size_t idx = 0; idx < syndrome.size(); ++idx){
     if( syndrome[idx] == 1 ) detection_events.push_back(idx);
