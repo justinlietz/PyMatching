@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "pymatching/sparse_blossom/driver/user_graph.pybind.h"
+#include "pymatching/sparse_blossom/driver/user_graph.h"
 
 #include "pybind11/pybind11.h"
 #include "pymatching/sparse_blossom/driver/mwpm_decoding.h"
@@ -68,21 +69,6 @@ py::class_<pm::UserGraph> pm_pybind::pybind_user_graph(py::module &m) {
     return g;
 }
 
-pm::MERGE_STRATEGY merge_strategy_from_string(const std::string &merge_strategy) {
-    static std::unordered_map<std::string, pm::MERGE_STRATEGY> const table = {
-        {"disallow", pm::DISALLOW},
-        {"independent", pm::INDEPENDENT},
-        {"smallest-weight", pm::SMALLEST_WEIGHT},
-        {"keep-original", pm::KEEP_ORIGINAL},
-        {"replace", pm::REPLACE}};
-    auto it = table.find(merge_strategy);
-    if (it != table.end()) {
-        return it->second;
-    } else {
-        throw std::invalid_argument("Merge strategy \"" + merge_strategy + "\" not recognised.");
-    }
-}
-
 void pm_pybind::pybind_user_graph_methods(py::module &m, py::class_<pm::UserGraph> &g) {
     g.def(py::init<>());
     g.def(py::init<size_t>(), "num_nodes"_a);
@@ -111,7 +97,7 @@ void pm_pybind::pybind_user_graph_methods(py::module &m, py::class_<pm::UserGrap
             }
             std::vector<size_t> observables_vec(observables.begin(), observables.end());
             self.add_or_merge_edge(
-                node1, node2, observables_vec, weight, error_probability, merge_strategy_from_string(merge_strategy));
+                node1, node2, observables_vec, weight, error_probability, pm::merge_strategy_from_string(merge_strategy));
         },
         "node1"_a,
         "node2"_a,
@@ -142,7 +128,7 @@ void pm_pybind::pybind_user_graph_methods(py::module &m, py::class_<pm::UserGrap
             }
             std::vector<size_t> observables_vec(observables.begin(), observables.end());
             self.add_or_merge_boundary_edge(
-                node, observables_vec, weight, error_probability, merge_strategy_from_string(merge_strategy));
+                node, observables_vec, weight, error_probability, pm::merge_strategy_from_string(merge_strategy));
         },
         "node"_a,
         "observables"_a,
@@ -476,7 +462,7 @@ void pm_pybind::pybind_user_graph_methods(py::module &m, py::class_<pm::UserGrap
                     ") must have the same number of columns as the check matrix, which has shape (" +
                     std::to_string(H.num_rows) + ", " + std::to_string(H.num_cols) + ").");
 
-            auto merge_strategy_enum = merge_strategy_from_string(merge_strategy);
+            auto merge_strategy_enum = pm::merge_strategy_from_string(merge_strategy);
 
             auto H_indptr_unchecked = H.indptr.unchecked<1>();
             auto H_indices_unchecked = H.indices.unchecked<1>();

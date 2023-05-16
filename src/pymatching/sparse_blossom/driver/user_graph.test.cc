@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "pymatching/sparse_blossom/driver/user_graph.h"
-/* #include "pymatching/sparse_blossom/driver/user_graph.pybind.h" */
 #include "pymatching/sparse_blossom/driver/mwpm_decoding.h"
 
 #include <cmath>
@@ -29,10 +28,10 @@ TEST(UserGraph, GraphFromOnlyVectors) {
 
     std::vector<uint8_t> syndrome = {0, 1, 0, 0};
     std::vector<uint8_t> decode_output = pm::decode(graph, syndrome);
-    std::cout << "correc: " << decode_output.size() << "\n";
-    for(size_t i = 0; i < decode_output.size(); ++i){
-      std::cout << "i: " << i << " val: " << +decode_output[i] << "\n";
-    }
+    /* std::cout << "decoder_output: " << decode_output.size() << "\n"; */
+    /* for(size_t i = 0; i < decode_output.size(); ++i){ */
+    /*   std::cout << "i: " << i << " val: " << +decode_output[i] << "\n"; */
+    /* } */
 
     std::vector<uint8_t> answer = {1, 1, 0, 0, 0};
     ASSERT_EQ(decode_output, answer);
@@ -45,7 +44,6 @@ TEST(UserGraph, GraphFromVectors) {
                                               {0, 0, 1, 1, 0},
                                               {0, 0, 0, 1, 1}});
 
-    // from here to constructor is all graph optional params
     std::vector<std::vector<uint8_t>> vec_F({{1, 0, 0, 0, 0},
                                               {0, 1, 0, 0, 0},
                                               {0, 0, 1, 0, 0},
@@ -68,16 +66,14 @@ TEST(UserGraph, GraphFromVectors) {
     std::vector<uint8_t> decode_output = pm::decode(graph, syndrome);
     /* double rweight; */
     /* auto [correction, rweight] = decode(graph, syndrome); */
-    std::cout << "correc: " << decode_output.size() << "\n";
-    for(size_t i = 0; i < decode_output.size(); ++i){
-      std::cout << "i: " << i << " val: " << +decode_output[i] << "\n";
-    }
+    /* std::cout << "correc: " << decode_output.size() << "\n"; */
+    /* for(size_t i = 0; i < decode_output.size(); ++i){ */
+    /*   std::cout << "i: " << i << " val: " << +decode_output[i] << "\n"; */
+    /* } */
 
     std::vector<uint8_t> answer = {1, 1, 0, 0, 0};
     ASSERT_EQ(decode_output, answer);
 }
-
-
 
 TEST(UserGraph, GraphFromCSCCheckMatrix) {
     std::vector<std::vector<uint8_t>> vec_H({{1, 1, 0, 0, 0},

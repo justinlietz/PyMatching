@@ -223,6 +223,8 @@ std::vector<uint8_t> decode(UserGraph &graph, const std::vector<uint8_t> &syndro
 
 UserGraph detector_error_model_to_user_graph(const stim::DetectorErrorModel& detector_error_model);
 
+MERGE_STRATEGY merge_strategy_from_string(const std::string &merge_strategy);
+
 }  // namespace pm
 
 #endif  // PYMATCHING2_USER_GRAPH_H

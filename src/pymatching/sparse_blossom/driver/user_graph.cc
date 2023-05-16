@@ -396,8 +396,8 @@ pm::UserGraph pm::detector_error_model_to_user_graph(const stim::DetectorErrorMo
     return user_graph;
 }
 
-// This is copied from user_graph.pybind.cc, figure out where is should go
-pm::MERGE_STRATEGY merge_strategy_from_string2(const std::string &merge_strategy) {
+//This is copied from user_graph.pybind.cc, figure out where is should go
+pm::MERGE_STRATEGY pm::merge_strategy_from_string(const std::string &merge_strategy) {
     static std::unordered_map<std::string, pm::MERGE_STRATEGY> const table = {
         {"disallow", pm::DISALLOW},
         {"independent", pm::INDEPENDENT},
@@ -420,7 +420,6 @@ std::vector<std::vector<uint8_t>> vec_eye(size_t n){
   }
   return eye;
 }
-
 
 pm::UserGraph pm::vector_checkmatrix_to_user_graph(const std::vector<std::vector<uint8_t>> &vec_H){
     std::vector<std::vector<uint8_t>> vec_F = vec_eye(vec_H[0].size());
@@ -471,18 +470,6 @@ pm::UserGraph pm::csccheckmatrix_to_user_graph(
            const std::vector<double> &timelike_weights,
            const std::vector<double> &measurement_error_probabilities,
            pm::CSCCheckMatrix &F){
-           // py::object &faults_matrix) {
-           // auto H = CompressedSparseColumnCheckMatrix(check_matrix);
-           // auto H = cppCompressedSparseColumnCheckMatrix(dat, inds, ptrs, nrows, ncols);
-           // auto F = cppCompressedSparseColumnCheckMatrix(dat, inds, ptrs, nrows, ncols);
-
-           // if (faults_matrix.is(py::none())) {
-           //     faults_matrix =
-           //         py::module_::import("scipy.sparse")
-           //             .attr("eye")(
-           //                 H.num_cols, "dtype"_a = py::module_::import("numpy").attr("uint8"), "format"_a = "csc");
-           // }
-           // auto F = CompressedSparseColumnCheckMatrix(faults_matrix);
 
             // auto weights_unchecked = weights.unchecked<1>();
             std::vector<double> weights_unchecked(weights);
@@ -507,7 +494,7 @@ pm::UserGraph pm::csccheckmatrix_to_user_graph(
                     ") must have the same number of columns as the check matrix, which has shape (" +
                     std::to_string(H.num_rows) + ", " + std::to_string(H.num_cols) + ").");
 
-            auto merge_strategy_enum = merge_strategy_from_string2(merge_strategy);
+            auto merge_strategy_enum = pm::merge_strategy_from_string(merge_strategy);
 
             // auto H_indptr_unchecked = H.indptr.unchecked<1>();
             // auto H_indices_unchecked = H.indices.unchecked<1>();
